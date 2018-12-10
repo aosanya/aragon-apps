@@ -18,3 +18,7 @@ export function makeEtherscanBaseUrl(network) {
     return `https://${network === 'main' ? '' : `${network}.`}etherscan.io`
   }
 }
+
+export function isMobile() {
+  return window.orientation > -1
+}
