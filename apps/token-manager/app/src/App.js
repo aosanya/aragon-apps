@@ -59,7 +59,7 @@ class App extends React.Component {
   getHolderBalance = address => {
     const { holders } = this.props
     const holder = holders.find(holder =>
-      addressesEqual(holder.address, address)
+      addressesEqual(holder.address, address),
     )
     return holder ? holder.balance : new BN('0')
   }
@@ -126,7 +126,9 @@ class App extends React.Component {
               <AppBar
                 title={
                   <Title>
-                    {isMobile() && <MenuButton onClick={this.handleMenuPanelOpen} />}
+                    {isMobile() && (
+                      <MenuButton onClick={this.handleMenuPanelOpen} />
+                    )}
                     <TitleLabel>Token Manager</TitleLabel>
                     {tokenSymbol && <Badge.App>{tokenSymbol}</Badge.App>}
                   </Title>
@@ -247,5 +249,5 @@ export default observe(
         groupMode: tokenTransfersEnabled && maxAccountTokens === '1',
       }
     }),
-  {}
+  {},
 )(App)
