@@ -16,9 +16,10 @@ import {
 import EmptyState from './screens/EmptyState'
 import Holders from './screens/Holders'
 import AssignVotePanelContent from './components/Panels/AssignVotePanelContent'
+import MenuButton from './components/MenuButton/MenuButton'
 import { networkContextType } from './provide-network'
 import { hasLoadedTokenSettings } from './token-settings'
-import { makeEtherscanBaseUrl } from './utils'
+import { makeEtherscanBaseUrl, isMobile } from './utils'
 import { addressesEqual } from './web3-utils'
 
 const initialAssignTokensConfig = {
@@ -29,6 +30,7 @@ const initialAssignTokensConfig = {
 class App extends React.Component {
   static propTypes = {
     app: PropTypes.object.isRequired,
+    sendMessageToWrapper: PropTypes.func.isRequired,
   }
   static defaultProps = {
     appStateReady: false,
@@ -88,6 +90,9 @@ class App extends React.Component {
       sidepanelOpened: true,
     })
   }
+  handleMenuPanelOpen = () => {
+    this.props.sendMessageToWrapper('menuPanel', true)
+  }
   handleSidepanelClose = () => {
     this.setState({ sidepanelOpened: false })
   }
@@ -121,6 +126,7 @@ class App extends React.Component {
               <AppBar
                 title={
                   <Title>
+                    {isMobile() && <MenuButton onClick={this.handleMenuPanelOpen} />}
                     <TitleLabel>Token Manager</TitleLabel>
                     {tokenSymbol && <Badge.App>{tokenSymbol}</Badge.App>}
                   </Title>
