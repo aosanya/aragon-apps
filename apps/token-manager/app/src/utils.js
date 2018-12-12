@@ -113,7 +113,7 @@ export function formatBalance(amount, base, precision = 2) {
  */
 export function stakesPercentages(
   amounts,
-  { total = new BN(-1), maxIncluded = amounts.length } = {}
+  { total = new BN(-1), maxIncluded = amounts.length } = {},
 ) {
   if (total.eqn(-1)) {
     total = amounts.reduce((total, value) => total.add(value), new BN(0))
@@ -146,8 +146,8 @@ export function stakesPercentages(
       includedStakes,
       excludedStakes.reduce(
         (total, stake) => total.add(stake.percentage),
-        new BN(0)
-      )
+        new BN(0),
+      ),
     )
 
   const hasRest = amounts.length > maxIncluded
@@ -156,7 +156,7 @@ export function stakesPercentages(
   const includedStakes = (hasRest
     ? addCalculatedRest(
         stakes.slice(0, maxIncluded - 1),
-        stakes.slice(maxIncluded - 1)
+        stakes.slice(maxIncluded - 1),
       )
     : stakes
   ).map(stakePercentageAsNumber)
@@ -165,7 +165,7 @@ export function stakesPercentages(
   // Start with the percentages that are the closest to the next integer.
   const missingPct = includedStakes.reduce(
     (total, stake) => total - Math.floor(stake.percentage),
-    100
+    100,
   )
   const stakesToAdjust = includedStakes
     .map((stake, index) => [index, stake.percentage])
@@ -176,7 +176,7 @@ export function stakesPercentages(
   const adjustStakePercentage = (stake, index) => ({
     ...stake,
     percentage: (stakesToAdjust.includes(index) ? Math.ceil : Math.floor)(
-      stake.percentage
+      stake.percentage,
     ),
   })
 
@@ -184,7 +184,7 @@ export function stakesPercentages(
 
   // Check if there is any 0% item in the list
   const firstZeroIndex = adjustedStakes.findIndex(
-    ({ percentage }) => percentage === 0
+    ({ percentage }) => percentage === 0,
   )
 
   if (firstZeroIndex === -1) {
@@ -199,7 +199,7 @@ export function stakesPercentages(
       // so we replace the first non-zero percentage by “Rest”.
       addRest(
         adjustedStakes.slice(0, firstZeroIndex - 1),
-        adjustedStakes[firstZeroIndex - 1].percentage
+        adjustedStakes[firstZeroIndex - 1].percentage,
       )
 }
 
@@ -213,4 +213,8 @@ export function makeEtherscanBaseUrl(network) {
   ) {
     return `https://${network === 'main' ? '' : `${network}.`}etherscan.io`
   }
+}
+
+export function isMobile() {
+  return window.orientation > -1
 }
