@@ -18,6 +18,7 @@ import tokenAbi from './abi/token-balanceOfAt.json'
 import VotePanelContent from './components/VotePanelContent'
 import NewVotePanelContent from './components/NewVotePanelContent'
 import AutoLink from './components/AutoLink'
+import MenuButton from './components/MenuButton/MenuButton'
 import { networkContextType } from './utils/provideNetwork'
 import { settingsContextType } from './utils/provideSettings'
 import { hasLoadedVoteSettings } from './vote-settings'
@@ -232,11 +233,11 @@ class App extends React.Component {
         <Main>
           <AppView
             appBar={
-              <AppBar
+              <StyledAppBar
                 title={
                   <Title>
                     {isMobile() && (
-                      <button onClick={this.handleMenuPanelOpen}>M</button>
+                      <MenuButton onClick={this.handleMenuPanelOpen} />
                     )}
                     <TitleLabel>Voting</TitleLabel>
                   </Title>
@@ -293,6 +294,10 @@ class App extends React.Component {
     )
   }
 }
+
+const StyledAppBar = styled(AppBar)`
+  padding-left: 0;
+`
 
 const Title = styled.span`
   display: flex;
