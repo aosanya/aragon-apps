@@ -1,8 +1,9 @@
 import React from 'react'
 import styled from 'styled-components'
-import { Text, theme } from '@aragon/ui'
+import { Text, theme, IdentityBadge, breakpoint } from '@aragon/ui'
 import { formatBalance, stakesPercentages } from '../utils'
 import TokenBadge from './TokenBadge'
+import { isMobile } from '../utils'
 
 const DISTRIBUTION_ITEMS_MAX = 7
 const DISTRIBUTION_COLORS = [
@@ -45,10 +46,11 @@ class SideBar extends React.Component {
       tokenName,
       tokenSupply,
       tokenSymbol,
+      ...rest
     } = this.props
     const stakes = displayedStakes(holders, tokenSupply)
     return (
-      <Main>
+      <Main {...rest}>
         <Part>
           <h1>
             <Text color={theme.textSecondary} smallcaps>
@@ -104,9 +106,7 @@ class SideBar extends React.Component {
               <StakesListItem key={name}>
                 <span>
                   <StakesListBullet style={{ background: color }} />
-                  <Text title={name} color={theme.textSecondary}>
-                    {name}
-                  </Text>
+                  <IdentityBadge entity={name} shorten={isMobile()} />
                 </span>
                 <strong>{stake}%</strong>
               </StakesListItem>
@@ -121,9 +121,19 @@ class SideBar extends React.Component {
 const Main = styled.aside`
   flex-shrink: 0;
   flex-grow: 0;
-  width: 260px;
-  margin-left: 30px;
   min-height: 100%;
+  margin-top: 55px;
+  padding: 0 20px;
+
+  ${breakpoint(
+    'medium',
+    `
+      width: 260px;
+      margin-left: 30px;
+      margin-top: unset;
+      padding: 0;
+    `,
+  )};
 `
 
 const Part = styled.section`
