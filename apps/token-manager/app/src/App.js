@@ -12,6 +12,7 @@ import {
   SidePanel,
   font,
   observe,
+  breakpoint,
 } from '@aragon/ui'
 import EmptyState from './screens/EmptyState'
 import Holders from './screens/Holders'
@@ -122,6 +123,7 @@ class App extends React.Component {
         <BaseStyles />
         <Main>
           <AppView
+            padding={isMobile() ? 0 : 30}
             appBar={
               <AppBar
                 title={
@@ -193,6 +195,14 @@ class App extends React.Component {
 
 const Main = styled.div`
   height: 100vh;
+  width: 100vw;
+
+  ${breakpoint(
+    'medium',
+    `
+      width: auto;
+    `,
+  )};
 `
 
 const Title = styled.span`
