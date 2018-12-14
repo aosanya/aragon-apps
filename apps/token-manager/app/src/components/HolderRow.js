@@ -9,8 +9,10 @@ import {
   IconRemove,
   Badge,
   theme,
+  IdentityBadge,
+  breakpoint,
 } from '@aragon/ui'
-import { formatBalance } from '../utils'
+import { formatBalance, isMobile } from '../utils'
 
 class HolderRow extends React.Component {
   static defaultProps = {
@@ -43,9 +45,9 @@ class HolderRow extends React.Component {
 
     return (
       <TableRow>
-        <TableCell>
+        <StyledTableCell>
           <Owner>
-            <span>{address}</span>
+            <IdentityBadge entity={address} shorten={isMobile()} />
             {isCurrentUser && (
               <Badge.Identity
                 style={{ fontVariant: 'small-caps' }}
@@ -55,13 +57,13 @@ class HolderRow extends React.Component {
               </Badge.Identity>
             )}
           </Owner>
-        </TableCell>
+        </StyledTableCell>
         {!groupMode && (
           <TableCell align="right">
             {formatBalance(balance, tokenDecimalsBase)}
           </TableCell>
         )}
-        <TableCell align="right">
+        <StyledTableCell align="right">
           <ContextMenu>
             {canAssign && (
               <ContextMenuItem onClick={this.handleAssignTokens}>
@@ -81,11 +83,23 @@ class HolderRow extends React.Component {
               </ActionLabel>
             </ContextMenuItem>
           </ContextMenu>
-        </TableCell>
+        </StyledTableCell>
       </TableRow>
     )
   }
 }
+
+const StyledTableCell = styled(TableCell)`
+  ${isMobile() &&
+    `&&& {
+      border-left: 0;
+      border-right: 0;
+
+      :first-child, :last-child {
+        border-radius: 0;
+      }
+  }`};
+`
 
 const ActionLabel = styled.span`
   margin-left: 15px;
