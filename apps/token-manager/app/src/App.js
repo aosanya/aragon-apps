@@ -18,6 +18,7 @@ import EmptyState from './screens/EmptyState'
 import Holders from './screens/Holders'
 import AssignVotePanelContent from './components/Panels/AssignVotePanelContent'
 import MenuButton from './components/MenuButton/MenuButton'
+import AssignTokensButton from './components/AssignTokensButton/AssignTokensButton'
 import { networkContextType } from './provide-network'
 import { hasLoadedTokenSettings } from './token-settings'
 import { makeEtherscanBaseUrl, isMobile } from './utils'
@@ -136,12 +137,18 @@ class App extends React.Component {
                   </Title>
                 }
                 endContent={
-                  <Button
-                    mode="strong"
-                    onClick={this.handleLaunchAssignTokensNoHolder}
-                  >
-                    Assign Tokens
-                  </Button>
+                  isMobile() ? (
+                    <AssignTokensButton
+                      onClick={this.handleLaunchAssignTokensNoHolder}
+                    />
+                  ) : (
+                    <Button
+                      mode="strong"
+                      onClick={this.handleLaunchAssignTokensNoHolder}
+                    >
+                      Assign Tokens
+                    </Button>
+                  )
                 }
               />
             }
