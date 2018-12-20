@@ -1,13 +1,25 @@
 import React from 'react'
 import styled from 'styled-components'
-import { TabBar, Table, TableHeader, TableRow, breakpoint } from '@aragon/ui'
+import { Spring, animated } from 'react-spring'
+import {
+  TabBar,
+  Table,
+  TableHeader,
+  TableRow,
+  breakpoint,
+  springs,
+} from '@aragon/ui'
 import HolderRow from '../components/HolderRow'
 import SideBar from '../components/SideBar'
+import { isMobile } from '../utils'
 
 const TABS = ['Holders', 'Token Info']
 
+const OFFSET = isMobile() ? 50 : 0
+
 class Holders extends React.Component {
   state = { selectedTab: 0 }
+
   static defaultProps = {
     holders: [],
   }
@@ -38,8 +50,10 @@ class Holders extends React.Component {
               onSelect={this.handleSelectTab}
             />
           </ResponsiveTabBar>
-          <ResponsiveTable
-            selected={selectedTab === 0}
+          <Screen
+            component={ResponsiveTable}
+            selected={!isMobile() || selectedTab === 0}
+            offset={-OFFSET}
             header={
               <TableRow>
                 <StyledTableHeader
@@ -66,10 +80,12 @@ class Holders extends React.Component {
                 onRemoveTokens={onRemoveTokens}
               />
             ))}
-          </ResponsiveTable>
+          </Screen>
         </Main>
-        <ResponsiveSideBar
-          selected={selectedTab === 1}
+        <Screen
+          component={ResponsiveSideBar}
+          selected={!isMobile() || selectedTab === 1}
+          offset={OFFSET}
           groupMode={groupMode}
           holders={holders}
           tokenAddress={tokenAddress}
@@ -87,6 +103,42 @@ class Holders extends React.Component {
     this.setState({ selectedTab: index })
   }
 }
+
+const Screen = ({
+  offset,
+  children,
+  component: Component,
+  selected,
+  ...props
+}) => {
+  return (
+    <Spring
+      from={{ progress: 0 }}
+      to={{ progress: !!selected }}
+      config={springs.smooth}
+      native
+    >
+      {({ progress }) =>
+        selected && (
+          <AnimatedDiv
+            style={{
+              opacity: progress.interpolate(v => v),
+              transform: progress.interpolate(
+                v => `translate3d(${offset - v * offset}px, 0, 0)`,
+              ),
+            }}
+          >
+            <Component {...props} children={children} />
+          </AnimatedDiv>
+        )
+      }
+    </Spring>
+  )
+}
+
+const AnimatedDiv = styled(animated.div)`
+  position: relative;
+`
 
 const StyledTableHeader = styled(TableHeader)`
   width: ${({ groupmode }) => (groupmode ? 100 : 50)}%;
@@ -112,26 +164,24 @@ const ResponsiveTabBar = styled.div`
 `
 
 const ResponsiveTable = styled(Table)`
-  display: ${({ selected }) => (selected ? 'block' : 'none')};
   margin-top: 1em;
 
   ${breakpoint(
     'medium',
     `
-      display: table;
+      opacity: 1;
       margin-top: 0;
     `,
   )};
 `
 
 const ResponsiveSideBar = styled(SideBar)`
-  display: ${({ selected }) => (selected ? 'block' : 'none')};
   margin-top: 1em;
 
   ${breakpoint(
     'medium',
     `
-      display: block;
+      opacity: 1;
       margin-top: 0;
     `,
   )};
