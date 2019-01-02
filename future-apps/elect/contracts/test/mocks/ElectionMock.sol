@@ -8,15 +8,16 @@ contract ElectionMock is Election {
      * https://github.com/trufflesuite/truffle/issues/569
      * https://github.com/trufflesuite/truffle/issues/737
      */
-    function newElectionExt(bytes _executionScript, string _metadata)
+    function newVoteExt(bytes _executionScript, string _metadata, bool _castVote, bool _executesIfDecided)
         external
+        returns (uint256 voteId)
     {
-        _newElection(_executionScript, _metadata);
-        emit StartElection(msg.sender, _metadata);
+        voteId = _newVote(_executionScript, _metadata, _castVote, _executesIfDecided);
+        emit StartVote(voteId, msg.sender, _metadata);
     }
 
-    // // _isValuePct public wrapper
-    // function isValuePct(uint256 _value, uint256 _total, uint256 _pct) external pure returns (bool) {
-    //     return _isValuePct(_value, _total, _pct);
-    // }
+    // _isValuePct public wrapper
+    function isValuePct(uint256 _value, uint256 _total, uint256 _pct) external pure returns (bool) {
+        return _isValuePct(_value, _total, _pct);
+    }
 }

@@ -13,7 +13,7 @@ const Kernel = artifacts.require('@aragon/os/contracts/kernel/Kernel')
 
 const MiniMeToken = artifacts.require('@aragon/apps-shared-minime/contracts/MiniMeToken')
 
-const Voting = artifacts.require('VotingMock')
+const Election = artifacts.require('ElectionMock')
 
 const getContract = name => artifacts.require(name)
 const bigExp = (x, y) => new web3.BigNumber(x).times(new web3.BigNumber(10).toPower(y))
@@ -30,7 +30,7 @@ const VOTER_STATE = ['ABSENT', 'YEA', 'NAY'].reduce((state, key, index) => {
 }, {})
 
 
-contract('Voting App', accounts => {
+contract('Election App', accounts => {
     let votingBase, daoFact, voting, token, executionTarget
 
     let APP_MANAGER_ROLE
@@ -44,7 +44,7 @@ contract('Voting App', accounts => {
         const aclBase = await getContract('ACL').new()
         const regFact = await EVMScriptRegistryFactory.new()
         daoFact = await DAOFactory.new(kernelBase.address, aclBase.address, regFact.address)
-        votingBase = await Voting.new()
+        votingBase = await Election.new()
 
         // Setup constants
         APP_MANAGER_ROLE = await kernelBase.APP_MANAGER_ROLE()
@@ -61,7 +61,7 @@ contract('Voting App', accounts => {
         await acl.createPermission(root, dao.address, APP_MANAGER_ROLE, root, { from: root })
 
         const receipt = await dao.newAppInstance('0x1234', votingBase.address, '0x', false, { from: root })
-        voting = Voting.at(receipt.logs.filter(l => l.event == 'NewAppProxy')[0].args.proxy)
+        voting = Election.at(receipt.logs.filter(l => l.event == 'NewAppProxy')[0].args.proxy)
 
         await acl.createPermission(ANY_ADDR, voting.address, CREATE_VOTES_ROLE, root, { from: root })
         await acl.createPermission(ANY_ADDR, voting.address, MODIFY_SUPPORT_ROLE, root, { from: root })
@@ -92,7 +92,7 @@ contract('Voting App', accounts => {
         })
 
         it('cannot initialize base app', async () => {
-            const newVoting = await Voting.new()
+            const newVoting = await Election.new()
             assert.isTrue(await newVoting.isPetrified())
             return assertRevert(async () => {
                 await newVoting.initialize(token.address, neededSupport, minimumAcceptanceQuorum, votingTime)
