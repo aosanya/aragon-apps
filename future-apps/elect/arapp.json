@@ -49,5 +49,5 @@
       ]
     }
   ],
-  "path": "contracts/DelegateVoting.sol"
+  "path": "contracts/Election.sol"
 }
