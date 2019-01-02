@@ -16,6 +16,14 @@ contract ElectionMock is Election {
         emit StartVote(voteId, msg.sender, _metadata);
     }
 
+    function newElectionExt(bytes _executionScript, string _metadata, bool _castVote, bool _executesIfDecided)
+        external
+        returns (uint256 electionId)
+    {
+        electionId = _newElection(_executionScript, _metadata, _castVote, _executesIfDecided);
+        emit StartElection(electionId, msg.sender, _metadata);
+    }
+
     // _isValuePct public wrapper
     function isValuePct(uint256 _value, uint256 _total, uint256 _pct) external pure returns (bool) {
         return _isValuePct(_value, _total, _pct);

@@ -23,6 +23,8 @@ contract Election is IForwarder, AragonApp {
 
     uint64 public constant PCT_BASE = 10 ** 18; // 0% = 0; 1% = 10^16; 100% = 10^18
 
+    string private constant ERROR_NO_ELECTION = "VOTING_NO_ELECTION";
+
     string private constant ERROR_NO_VOTE = "VOTING_NO_VOTE";
     string private constant ERROR_INIT_PCTS = "VOTING_INIT_PCTS";
     string private constant ERROR_CHANGE_SUPPORT_PCTS = "VOTING_CHANGE_SUPPORT_PCTS";
@@ -53,6 +55,9 @@ contract Election is IForwarder, AragonApp {
         bool executed;
         uint64 startDate;
         uint64 snapshotBlock;
+        uint64 minAcceptQuorumPct;
+        uint256 votingPower;
+        bytes executionScript;
         mapping (uint256 => Vote) votes;
         uint256 votesLength;
     }
@@ -76,6 +81,10 @@ contract Election is IForwarder, AragonApp {
     event ChangeSupportRequired(uint64 supportRequiredPct);
     event ChangeMinQuorum(uint64 minAcceptQuorumPct);
 
+    modifier electionExists(uint256 _electionId) {
+        require(_electionId < electionsLength, ERROR_NO_ELECTION);
+        _;
+    }
 
     modifier voteExists(uint256 _voteId) {
         require(_voteId < votesLength, ERROR_NO_VOTE);
@@ -243,6 +252,31 @@ contract Election is IForwarder, AragonApp {
         return true;
     }
 
+    function getElection(uint256 _electionId)
+        public
+        view
+        electionExists(_electionId)
+        returns (
+            bool open,
+            bool executed,
+            uint64 startDate,
+            uint64 snapshotBlock,
+            uint64 minAcceptQuorum,
+            uint256 votingPower,
+            bytes script
+        )
+    {
+        Election storage election_ = elections[_electionId];
+
+        open = _isElectionOpen(election_); // should revert to isVoteOpen after refactoring
+        executed = election_.executed;
+        startDate = election_.startDate;
+        snapshotBlock = election_.snapshotBlock;
+        minAcceptQuorum = election_.minAcceptQuorumPct;
+        votingPower = election_.votingPower;
+        script = election_.executionScript;
+    }
+
     function getVote(uint256 _voteId)
         public
         view
@@ -285,14 +319,13 @@ contract Election is IForwarder, AragonApp {
         uint256 votingPower = token.totalSupplyAt(election_.snapshotBlock);
         require(votingPower > 0, ERROR_NO_VOTING_POWER);
 
-        electionId = votesLength++;
+        electionId = electionsLength++;
         Election storage election_ = elections[electionId];
         election_.startDate = getTimestamp64();
         election_.snapshotBlock = getBlockNumber64() - 1; // avoid double voting in this very block
-        // election_.supportRequiredPct = supportRequiredPct;
-        // election_.minAcceptQuorumPct = minAcceptQuorumPct;
-        // election_.votingPower = votingPower;
-        // election_.executionScript = _executionScript;
+        election_.minAcceptQuorumPct = minAcceptQuorumPct;
+        election_.votingPower = votingPower;
+        election_.executionScript = _executionScript;
 
         emit StartElection(electionId, msg.sender, _metadata);
 
