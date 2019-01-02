@@ -102,7 +102,7 @@ contract('Election App', accounts => {
             })
 
             context('creating election', () => {
-                let script, creator, metadata
+                let script, creator, metadata, choiceCount
 
                 beforeEach(async () => {
                     const action = { to: executionTarget.address, calldata: executionTarget.contract.execute.getData() }
@@ -110,10 +110,24 @@ contract('Election App', accounts => {
                     const startElection = startElectionEvent(await election.newElectionExt(script, 'metadata', { from: holder51 }))
                     creator = startElection.creator
                     metadata = startElection.metadata
+                    console.log('add Choice')
+
+                    try{
+                        await election.addChoice('Good Choice')
+                        await election.addChoice('Better Choice')
+                        await election.addChoice('Best Choice')
+                    }
+                    catch (error){
+
+                        console.log(error)
+                    }
+
+
+
                 })
 
                 it('has correct state', async () => {
-                    const [isOpen, isExecuted, startDate, supportRequired, minQuorum ] = await election.getElection()
+                    const [isOpen, isExecuted, startDate, supportRequired, minQuorum, choiceCount ] = await election.getElection()
                     console.log("       Election Started at " + startDate) // Why is this 0
                     assert.isTrue(isOpen, 'vote should be open')
                     assert.isFalse(isExecuted, 'vote should not be executed')
@@ -121,7 +135,17 @@ contract('Election App', accounts => {
                     assert.equal(supportRequired.toNumber(), neededSupport.toNumber(), 'required support should be app required support')
                     assert.equal(minQuorum.toNumber(), minimumAcceptanceQuorum.toNumber(), 'min quorum should be app min quorum')
                     assert.equal(metadata, 'metadata', 'should have returned correct metadata')
+                    assert.equal(choiceCount, 3, 'should have the correct number of choices')
+                    const choice1 = await election.choices(1)
+                    assert.equal(choice1[0], 'Good Choice', 'should have the correct choice 1')
+                    const choice2 = await election.choices(2)
+                    assert.equal(choice2[0], 'Better Choice', 'should have the correct choice 2')
+                    const choice3 = await election.choices(3)
+                    assert.equal(choice3[0], 'Best Choice', 'should have the correct choice 3')
+                    console.log(choice3[0])
                 })
+
+
             })
         })
     }

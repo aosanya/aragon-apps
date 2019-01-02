@@ -24,7 +24,7 @@ contract Election is AragonApp  {
     bool executed;
     uint64 startDate;
     uint choiceCount;
-    mapping (uint256 => Choice) choices;
+    mapping (uint256 => Choice) public choices;
 
     MiniMeToken public token;
     uint64 public supportRequiredPct;
@@ -59,24 +59,38 @@ contract Election is AragonApp  {
         supportRequiredPct = _supportRequiredPct;
         minAcceptQuorumPct = _minAcceptQuorumPct;
         voteTime = _voteTime;
+        choiceCount = 0;
+    }
+
+    function addChoice(
+        string _choice
+    )
+        external
+    {
+        choiceCount = choiceCount + 1;
+        Choice storage choice_ = choices[choiceCount];
+        choice_.description = _choice;
+        choice_.choice.initialize(token, supportRequiredPct, minAcceptQuorumPct, voteTime);
     }
 
     function getElection()
         public
         view
         returns (
-            bool open,
-            bool executed,
-            uint64 startDate,
-            uint64 supportRequired,
-            uint64 minAcceptQuorum
+            bool _open,
+            bool _executed,
+            uint64 _startDate,
+            uint64 _supportRequired,
+            uint64 _minAcceptQuorum,
+            uint _choiceCount
         )
     {
-        open = _isElectionOpen();
-        executed = executed;
-        startDate = startDate;
-        supportRequired = supportRequiredPct;
-        minAcceptQuorum = minAcceptQuorumPct;
+        _open = _isElectionOpen();
+        _executed = executed;
+        _startDate = startDate;
+        _supportRequired = supportRequiredPct;
+        _minAcceptQuorum = minAcceptQuorumPct;
+        _choiceCount = choiceCount;
     }
 
         /**
@@ -100,4 +114,6 @@ contract Election is AragonApp  {
     function _isElectionOpen() internal view returns (bool) {
         return getTimestamp64() < startDate.add(voteTime) && !executed;
     }
+
+
 }
