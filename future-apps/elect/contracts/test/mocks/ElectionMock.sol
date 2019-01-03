@@ -16,6 +16,15 @@ contract ElectionMock is Election {
         emit StartVote(voteId, msg.sender, _metadata);
     }
 
+    function newElectionVoteExt(uint256 _electionId, bytes _executionScript, string _metadata, string _candidate,
+                                bool _castVote, bool _executesIfDecided)
+        external
+        returns (uint256 voteId)
+    {
+        voteId = _newElectionVote(_electionId, _executionScript, _metadata, _candidate, _castVote, _executesIfDecided);
+        emit StartVote(voteId, msg.sender, _metadata);
+    }
+
     function newElectionExt(bytes _executionScript, string _metadata, bool _castVote, bool _executesIfDecided)
         external
         returns (uint256 electionId)
