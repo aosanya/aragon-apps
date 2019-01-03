@@ -180,25 +180,26 @@ contract('Election App', accounts => {
 
                 })
 
-                // it('election has correct state', async () => {
-                //     const [isOpen, isExecuted, startDate, snapshotBlock, minQuorum, votingPower, votesLength, execScript] = await voting.getElection(electionId)
-                //     assert.equal(await voting.electionsLength(), 1, 'Should have correct count of elections')
-                //     assert.equal(await voting.votesLength(), 2, 'Should have correct count of candidates')
-                //     assert.isTrue(isOpen, 'election should be open')
-                //     assert.isFalse(isExecuted, 'election should not be executed')
-                //     assert.equal(creator, holder51, 'creator should be correct')
-                //     assert.equal(snapshotBlock, await getBlockNumber() - 3, 'snapshot block should be correct')
-                //     assert.equal(minQuorum.toNumber(), minimumAcceptanceQuorum.toNumber(), 'min quorum should be app min quorum')
-                //     assert.equal(votingPower.toString(), bigExp(100, decimals).toString(), 'total voters should be 100')
-                //     assert.equal(votesLength, 2, 'number of votes should be 2')
-                //     const electionVoteIds = await voting.getElectionVoteIds(electionId);
-                //     assert.equal(electionVoteIds[0], 0, 'vote Id 1 should be correct')
-                //     assert.equal(electionVoteIds[1], 1, 'vote Id 2 should be correct')
-                //     //assert.equal(votingId, await voting.elections[0], 'snapshot block should be correct')
-                //     assert.equal(execScript, script, 'script should be correct')
-                //     //Todo MWA Add Support req here
-                //     assert.equal(electionMetadata, 'electionMetadata', 'should have returned correct metadata')
-                // })
+                it('election has correct state', async () => {
+                    const [isOpen, isExecuted, startDate, snapshotBlock, supportRequired, minQuorum, votingPower, votesLength, execScript] = await voting.getElection(electionId)
+                    assert.equal(await voting.electionsLength(), 1, 'Should have correct count of elections')
+                    assert.equal(await voting.votesLength(), 2, 'Should have correct count of candidates')
+                    assert.isTrue(isOpen, 'election should be open')
+                    assert.isFalse(isExecuted, 'election should not be executed')
+                    assert.equal(creator, holder51, 'creator should be correct')
+                    assert.equal(snapshotBlock, await getBlockNumber() - 3, 'snapshot block should be correct')
+                    assert.equal(supportRequired.toNumber(), neededSupport.toNumber(), 'required support should be app required support')
+                    assert.equal(minQuorum.toNumber(), minimumAcceptanceQuorum.toNumber(), 'min quorum should be app min quorum')
+                    assert.equal(votingPower.toString(), bigExp(100, decimals).toString(), 'total voters should be 100')
+                    assert.equal(votesLength, 2, 'number of votes should be 2')
+                    const electionVoteIds = await voting.getElectionVoteIds(electionId);
+                    assert.equal(electionVoteIds[0], 0, 'vote Id 1 should be correct')
+                    assert.equal(electionVoteIds[1], 1, 'vote Id 2 should be correct')
+                    //assert.equal(votingId, await voting.elections[0], 'snapshot block should be correct')
+                    assert.equal(execScript, script, 'script should be correct')
+                    //Todo MWA Add Support req here
+                    assert.equal(electionMetadata, 'electionMetadata', 'should have returned correct metadata')
+                })
 
                 // it('vote1 has correct state', async () => {
                 //     const [isOpen, isExecuted, candidate, startDate, snapshotBlock, minQuorum, votingPower, execScript] = await voting.getVote(voteId1)

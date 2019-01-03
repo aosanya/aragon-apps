@@ -58,6 +58,7 @@ contract Election is IForwarder, AragonApp {
         bool executed;
         uint64 startDate;
         uint64 snapshotBlock;
+        uint64 supportRequiredPct;
         uint64 minAcceptQuorumPct;
         uint256 votingPower;
         bytes executionScript;
@@ -224,8 +225,7 @@ contract Election is IForwarder, AragonApp {
     }
 
     function canExecuteElection(uint256 _electionId) public view electionExists(_electionId) returns (bool) {
-
-
+        // ToDo MWA move the loops to single loop
         Election storage election_ = elections[_electionId];
 
         if (election_.executed) {
@@ -233,23 +233,31 @@ contract Election is IForwarder, AragonApp {
         }
 
         // Voting is already decided
-        if (_isValuePct(vote_.yea, vote_.votingPower, vote_.supportRequiredPct)) {
-            return true;
+        uint256[] memory voteIds = getElectionVoteIds(_electionId);
+        for (uint j = 0; j < voteIds.length; j++) {
+            if (_isValuePct(votes[j].yea, election_.votingPower, election_.supportRequiredPct)) {
+                return true;
+            }
         }
 
-        uint256 totalVotes = vote_.yea.add(vote_.nay);
+        uint256 totalVotes = getTotalVotes(_electionId);
 
-        // Vote ended?
-        if (_isVoteOpen(vote_)) {
+        // Election ended?
+        if (_isElectionOpen(election_)) {
             return false;
         }
         // Has enough support?
-        if (!_isValuePct(vote_.yea, totalVotes, vote_.supportRequiredPct)) {
-            return false;
+        for (uint k = 0; k < voteIds.length; k++) {
+            if (_isValuePct(votes[k].yea, totalVotes, election_.supportRequiredPct)) {
+                return false;
+            }
         }
+
         // Has min quorum?
-        if (!_isValuePct(vote_.yea, vote_.votingPower, vote_.minAcceptQuorumPct)) {
-            return false;
+        for (uint m = 0; m < voteIds.length; m++) {
+            if (!_isValuePct(votes[m].yea, election_.votingPower, election_.minAcceptQuorumPct)) {
+                return false;
+            }
         }
 
         return true;
@@ -268,6 +276,7 @@ contract Election is IForwarder, AragonApp {
             bool executed,
             uint64 startDate,
             uint64 snapshotBlock,
+            uint64 supportRequired,
             uint64 minAcceptQuorum,
             uint256 votingPower,
             uint256 votesLength,
@@ -280,6 +289,7 @@ contract Election is IForwarder, AragonApp {
         executed = election_.executed;
         startDate = election_.startDate;
         snapshotBlock = election_.snapshotBlock;
+        supportRequired = election_.supportRequiredPct;
         minAcceptQuorum = election_.minAcceptQuorumPct;
         votingPower = election_.votingPower;
         script = election_.executionScript;
@@ -299,6 +309,25 @@ contract Election is IForwarder, AragonApp {
         }
         return voteIds;
     }
+
+    function getTotalVotes(uint256 _electionId)
+        public
+        view
+        returns (
+            uint256
+        )
+    {
+        uint256 totalVotes = 0;
+
+        uint[] memory voteIds = new uint[](elections[_electionId].votesLength);
+        for (uint i = 0; i < voteIds.length; i++) {
+            totalVotes = totalVotes + votes[i].yea;
+        }
+        return totalVotes;
+    }
+
+
+
 
 
     function getVote(uint256 _voteId)
@@ -353,6 +382,7 @@ contract Election is IForwarder, AragonApp {
 
         election_.startDate = getTimestamp64();
         election_.snapshotBlock = getBlockNumber64() - 1; // avoid double voting in this very block
+        election_.supportRequiredPct = supportRequiredPct;
         election_.minAcceptQuorumPct = minAcceptQuorumPct;
         election_.votingPower = votingPower;
         election_.executionScript = _executionScript;
@@ -441,8 +471,8 @@ contract Election is IForwarder, AragonApp {
 
         emit CastVote(_voteId, _voter, _supports, voterStake);
 
-        if (_executesIfDecided && canExecute(_voteId)) {
-            _executeVote(_voteId);
+        if (_executesIfDecided && canExecuteElection(vote_.electionId)) {
+            _executeVote(_voteId, elections[vote_.electionId].executionScript);
         }
     }
 
@@ -451,10 +481,10 @@ contract Election is IForwarder, AragonApp {
 
         election_.executed = true;
 
-        uint256[] voteIds = getElectionVoteIds(_electionId);
+        uint256[] memory voteIds = getElectionVoteIds(_electionId);
 
         for (uint i = 0; i < voteIds.length; i++) {
-            _executeVote(voteIds[i], election_.script);
+            _executeVote(voteIds[i], election_.executionScript);
         }
         emit ExecuteElection(_electionId);
     }
