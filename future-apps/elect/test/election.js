@@ -20,7 +20,7 @@ const bigExp = (x, y) => new web3.BigNumber(x).times(new web3.BigNumber(10).toPo
 const pct16 = x => bigExp(x, 16)
 const startVoteEvent = receipt => receipt.logs.filter(x => x.event == 'StartVote')[0].args
 const startElectionEvent = receipt => receipt.logs.filter(x => x.event == 'StartElection')[0].args
-const createdVoteId = receipt => startVoteEvent(receipt).voteId
+const createdCandidateId = receipt => startVoteEvent(receipt).candidateId
 
 const ANY_ADDR = '0xffffffffffffffffffffffffffffffffffffffff'
 const NULL_ADDRESS = '0x00'
@@ -128,8 +128,8 @@ contract('Election App', accounts => {
             // it('forwarding creates vote', async () => {
             //     const action = { to: executionTarget.address, calldata: executionTarget.contract.execute.getData() }
             //     const script = encodeCallScript([action])
-            //     const voteId = createdVoteId(await voting.forward(script, { from: holder51 }))
-            //     assert.equal(voteId, 0, 'voting should have been created')
+            //     const candidateId = createdCandidateId(await voting.forward(script, { from: holder51 }))
+            //     assert.equal(candidateId, 0, 'voting should have been created')
             // })
         })
     }
@@ -159,7 +159,7 @@ contract('Election App', accounts => {
 
             context('creating election', () => {
                 let script, electionId, creator, electionMetadata
-                let voteId1, voteId2, voteMetadata1
+                let candidateId1, candidateId2, voteMetadata1
 
                 beforeEach(async () => {
                     const action = { to: executionTarget.address, calldata: executionTarget.contract.execute.getData() }
@@ -171,11 +171,11 @@ contract('Election App', accounts => {
                     electionMetadata = startElection.metadata
 
                     const startVote1 = startVoteEvent(await voting.newElectionVoteExt(electionId, script, 'metadata1', 'Good Choice', false, false, { from: holder51 }))
-                    voteId1 = startVote1.voteId
+                    candidateId1 = startVote1.candidateId
                     voteMetadata1 = startVote1.metadata
 
                     const startVote2 = startVoteEvent(await voting.newElectionVoteExt(electionId, script, 'metadata2', 'Better Choice', false, false, { from: holder51 }))
-                    voteId2 = startVote2.voteId
+                    candidateId2 = startVote2.candidateId
                     voteMetadata2 = startVote2.metadata
 
                 })
@@ -183,7 +183,7 @@ contract('Election App', accounts => {
                 it('election has correct state', async () => {
                     const [isOpen, isExecuted, startDate, snapshotBlock, supportRequired, minQuorum, votingPower, votesLength, execScript] = await voting.getElection(electionId)
                     assert.equal(await voting.electionsLength(), 1, 'Should have correct count of elections')
-                    assert.equal(await voting.votesLength(), 2, 'Should have correct count of candidates')
+                    assert.equal(await voting.candidatesLength(), 2, 'Should have correct count of candidates')
                     assert.isTrue(isOpen, 'election should be open')
                     assert.isFalse(isExecuted, 'election should not be executed')
                     assert.equal(creator, holder51, 'creator should be correct')
@@ -192,9 +192,9 @@ contract('Election App', accounts => {
                     assert.equal(minQuorum.toNumber(), minimumAcceptanceQuorum.toNumber(), 'min quorum should be app min quorum')
                     assert.equal(votingPower.toString(), bigExp(100, decimals).toString(), 'total voters should be 100')
                     assert.equal(votesLength, 2, 'number of votes should be 2')
-                    const electionVoteIds = await voting.getElectionVoteIds(electionId);
-                    assert.equal(electionVoteIds[0], 0, 'vote Id 1 should be correct')
-                    assert.equal(electionVoteIds[1], 1, 'vote Id 2 should be correct')
+                    const electionCandidateIds = await voting.getElectionCandidateIds(electionId);
+                    assert.equal(electionCandidateIds[0], 0, 'vote Id 1 should be correct')
+                    assert.equal(electionCandidateIds[1], 1, 'vote Id 2 should be correct')
                     //assert.equal(votingId, await voting.elections[0], 'snapshot block should be correct')
                     assert.equal(execScript, script, 'script should be correct')
                     //Todo MWA Add Support req here
@@ -202,7 +202,7 @@ contract('Election App', accounts => {
                 })
 
                 // it('vote1 has correct state', async () => {
-                //     const [isOpen, isExecuted, candidate, startDate, snapshotBlock, minQuorum, votingPower, execScript] = await voting.getVote(voteId1)
+                //     const [isOpen, isExecuted, candidate, startDate, snapshotBlock, minQuorum, votingPower, execScript] = await voting.getVote(candidateId1)
 
                 //     assert.isTrue(isOpen, 'vote should be open')
                 //     assert.equal(candidate, 'Good Choice', 'should have returned correct candidate')
@@ -213,7 +213,7 @@ contract('Election App', accounts => {
                 // })
 
                 // it('vote2 has correct state', async () => {
-                //     const [isOpen, isExecuted, candidate, startDate, snapshotBlock, minQuorum, votingPower, execScript] = await voting.getVote(voteId2)
+                //     const [isOpen, isExecuted, candidate, startDate, snapshotBlock, minQuorum, votingPower, execScript] = await voting.getVote(candidateId2)
 
                 //     assert.isTrue(isOpen, 'vote should be open')
                 //     assert.equal(candidate, 'Better Choice', 'should have returned correct candidate')
@@ -232,19 +232,19 @@ contract('Election App', accounts => {
                 // })
 
                 // it('holder can vote', async () => {
-                //     await voting.vote(voteId1, false, true, { from: holder29 })
-                //     const state = await voting.getVote(voteId1)
-                //     const voterState = await voting.getVoterState(voteId1, holder29)
+                //     await voting.vote(candidateId1, false, true, { from: holder29 })
+                //     const state = await voting.getVote(candidateId1)
+                //     const voterState = await voting.getVoterState(candidateId1, holder29)
 
                 //     assert.equal(state[8].toString(), bigExp(29, decimals).toString(), 'nay vote should have been counted')
                 //     assert.equal(voterState, VOTER_STATE.NAY, 'holder29 should have nay voter status')
                 // })
 
                 // it('holder can modify vote', async () => {
-                //     await voting.vote(voteId1, true, true, { from: holder29 })
-                //     await voting.vote(voteId1, false, true, { from: holder29 })
-                //     await voting.vote(voteId1, true, true, { from: holder29 })
-                //     const state = await voting.getVote(voteId1)
+                //     await voting.vote(candidateId1, true, true, { from: holder29 })
+                //     await voting.vote(candidateId1, false, true, { from: holder29 })
+                //     await voting.vote(candidateId1, true, true, { from: holder29 })
+                //     const state = await voting.getVote(candidateId1)
 
                 //     assert.equal(state[7].toString(), bigExp(29, decimals).toString(), 'yea vote should have been counted')
                 //     assert.equal(state[8], 0, 'nay vote should have been removed')
@@ -253,8 +253,8 @@ contract('Election App', accounts => {
                 // it('token transfers dont affect voting', async () => {
                 //     await token.transfer(nonHolder, bigExp(29, decimals), { from: holder29 })
 
-                //     await voting.vote(voteId1, true, true, { from: holder29 })
-                //     const state = await voting.getVote(voteId1)
+                //     await voting.vote(candidateId1, true, true, { from: holder29 })
+                //     const state = await voting.getVote(candidateId1)
 
                 //     assert.equal(state[7].toString(), bigExp(29, decimals).toString(), 'yea vote should have been counted')
                 //     assert.equal(await token.balanceOf(holder29), 0, 'balance should be 0 at current block')
@@ -262,20 +262,20 @@ contract('Election App', accounts => {
 
                 // it('throws when non-holder votes', async () => {
                 //     return assertRevert(async () => {
-                //         await voting.vote(voteId1, true, true, { from: nonHolder })
+                //         await voting.vote(candidateId1, true, true, { from: nonHolder })
                 //     })
                 // })
 
                 // it('throws when voting after voting closes', async () => {
                 //     await timeTravel(votingTime + 1)
                 //     return assertRevert(async () => {
-                //         await voting.vote(voteId1, true, true, { from: holder29 })
+                //         await voting.vote(candidateId1, true, true, { from: holder29 })
                 //     })
                 // })
 
                 // it('can execute if vote is approved with support and quorum', async () => {
-                //     await voting.vote(voteId, true, true, { from: holder29 })
-                //     await voting.vote(voteId, false, true, { from: holder20 })
+                //     await voting.vote(candidateId, true, true, { from: holder29 })
+                //     await voting.vote(candidateId, false, true, { from: holder20 })
                 //     await timeTravel(votingTime + 1)
                 //     await voting.executeVote(electionId)
                 //     assert.equal(await executionTarget.counter(), 2, 'should have executed result')
@@ -293,46 +293,46 @@ contract('Election App', accounts => {
 
 
                 // it('cannot execute vote if not enough quorum met', async () => {
-                //     await voting.vote(voteId, true, true, { from: holder20 })
+                //     await voting.vote(candidateId, true, true, { from: holder20 })
                 //     await timeTravel(votingTime + 1)
                 //     return assertRevert(async () => {
-                //         await voting.executeVote(voteId)
+                //         await voting.executeVote(candidateId)
                 //     })
                 // })
 
                 // it('cannot execute vote if not support met', async () => {
-                //     await voting.vote(voteId, false, true, { from: holder29 })
-                //     await voting.vote(voteId, false, true, { from: holder20 })
+                //     await voting.vote(candidateId, false, true, { from: holder29 })
+                //     await voting.vote(candidateId, false, true, { from: holder20 })
                 //     await timeTravel(votingTime + 1)
                 //     return assertRevert(async () => {
-                //         await voting.executeVote(voteId)
+                //         await voting.executeVote(candidateId)
                 //     })
                 // })
 
                 it('vote can be executed automatically if decided', async () => {
-                    await voting.vote(voteId1, true, true, { from: holder51 }) // causes execution
+                    await voting.vote(candidateId1, true, true, { from: holder51 }) // causes execution
                     assert.equal(await executionTarget.counter(), 4, 'should have executed result')
                 })
 
                 it('vote can be not executed automatically if decided', async () => {
-                    await voting.vote(voteId1, true, false, { from: holder51 }) // doesnt cause execution
+                    await voting.vote(candidateId1, true, false, { from: holder51 }) // doesnt cause execution
                     await voting.executeElection(electionId)
                     assert.equal(await executionTarget.counter(), 4, 'should have executed result')
                 })
 
-                // it('cannot re-execute vote', async () => {
-                //     await voting.vote(voteId, true, true, { from: holder51 }) // causes execution
-                //     return assertRevert(async () => {
-                //         await voting.executeVote(voteId)
-                //     })
-                // })
+                it('cannot re-execute vote', async () => {
+                    await voting.vote(candidateId1, true, true, { from: holder51 }) // causes execution
+                    return assertRevert(async () => {
+                        await voting.executeElection(electionId)
+                    })
+                })
 
-                // it('cannot vote on executed vote', async () => {
-                //     await voting.vote(voteId, true, true, { from: holder51 }) // causes execution
-                //     return assertRevert(async () => {
-                //         await voting.vote(voteId, true, true, { from: holder20 })
-                //     })
-                // })
+                it('cannot vote on executed vote', async () => {
+                    await voting.vote(candidateId1, true, true, { from: holder51 }) // causes execution
+                    return assertRevert(async () => {
+                        await voting.vote(candidateId1, true, true, { from: holder20 })
+                    })
+                })
             })
         })
     }
