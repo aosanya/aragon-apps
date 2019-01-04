@@ -199,7 +199,7 @@ contract('Election App', accounts => {
 
                 it('candidate 1 has correct state', async () => {
 
-                    const [isOpen, isExecuted, candidate, startDate, snapshotBlock, minQuorum, votingPower, execScript] = await voting.getCandidate(electionId1, candidateId1)
+                    const [isOpen, isExecuted, candidate, startDate, snapshotBlock, minQuorum] = await voting.getCandidate(electionId1, candidateId1)
 
                     assert.isTrue(isOpen, 'vote should be open')
                     assert.equal(candidate, 'Good Choice', 'should have returned correct candidate')
@@ -210,7 +210,7 @@ contract('Election App', accounts => {
                 })
 
                 it('candidate 2 has correct state', async () => {
-                    const [isOpen, isExecuted, candidate, startDate, snapshotBlock, minQuorum, votingPower, execScript] = await voting.getCandidate(electionId1, candidateId2)
+                    const [isOpen, isExecuted, candidate, startDate, snapshotBlock, minQuorum] = await voting.getCandidate(electionId1, candidateId2)
 
                     assert.isTrue(isOpen, 'vote should be open')
                     assert.equal(candidate, 'Better Choice', 'should have returned correct candidate')
@@ -343,11 +343,11 @@ contract('Election App', accounts => {
                     await voting.vote(candidateId1, true, true, { from: holder29 }) // causes execution
                     await voting.vote(candidateId2, true, true, { from: holder51 }) // causes execution
 
-                    const [isOpen1, isExecuted1, description1, startDate1, snapshotBlock1,supportRequired1, minQuorum1, votes1, votingPower1, execScript1] = await voting.getCandidate(electionId1, candidateId1)
+                    const [isOpen1, isExecuted1, description1, startDate1, snapshotBlock1,supportRequired1, minQuorum1, votes1] = await voting.getCandidate(electionId1, candidateId1)
                     assert.equal(description1, 'Good Choice', 'should have returned correct candidate')
                     assert.equal(votes1.toString(), bigExp(49, decimals).toString(), 'vote count for candidate 1 should be correct')
 
-                    const [isOpen2, isExecuted2, description2, startDate2, snapshotBlock2,supportRequired2, minQuorum2, votes2, votingPower2, execScript2] = await voting.getCandidate(electionId1, candidateId2)
+                    const [isOpen2, isExecuted2, description2, startDate2, snapshotBlock2,supportRequired2, minQuorum2, votes2] = await voting.getCandidate(electionId1, candidateId2)
                     assert.equal(description2, 'Better Choice', 'should have returned correct candidate')
                     assert.equal(votes2.toString(), bigExp(51, decimals).toString(), 'vote count for candidate 2 should be correct')
                 })

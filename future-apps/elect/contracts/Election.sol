@@ -50,8 +50,6 @@ contract Election is IForwarder, AragonApp {
         uint64 supportRequiredPct;
         uint64 minAcceptQuorumPct;
         uint256 votes;
-        uint256 votingPower;
-        bytes executionScript;
         mapping (address => VoterState) voters;
     }
 
@@ -168,32 +166,6 @@ contract Election is IForwarder, AragonApp {
 
         emit ChangeMinQuorum(_minAcceptQuorumPct);
     }
-
-    // /**
-    // * @notice Create a new vote about "`_metadata`"
-    // * @param _executionScript EVM script to be executed on approval
-    // * @param _metadata Vote metadata
-    // * @return candidateId Id for newly created vote
-    // */
-    // function newVote(bytes _executionScript, string _metadata) external auth(CREATE_VOTES_ROLE) returns (uint256 candidateId) {
-    //     return _newVote(_executionScript, _metadata, true, true);
-    // }
-
-    // /**
-    // * @notice Create a new vote about "`_metadata`"
-    // * @param _executionScript EVM script to be executed on approval
-    // * @param _metadata Vote metadata
-    // * @param _castVote Whether to also cast newly created vote
-    // * @param _executesIfDecided Whether to also immediately execute newly created vote if decided
-    // * @return candidateId id for newly created vote
-    // */
-    // function newVote(bytes _executionScript, string _metadata, bool _castVote, bool _executesIfDecided)
-    //     external
-    //     auth(CREATE_VOTES_ROLE)
-    //     returns (uint256 candidateId)
-    // {
-    //     return _newVote(_executionScript, _metadata, true, true);
-    // }
 
     /**
     * @notice Vote `_supports ? 'yes' : 'no'` in vote #`_candidateId`
@@ -335,7 +307,6 @@ contract Election is IForwarder, AragonApp {
         return totalVotes;
     }
 
-
     function getCandidate(uint256 _electionId, uint256 _candidateId)
         public
         view
@@ -347,9 +318,7 @@ contract Election is IForwarder, AragonApp {
             uint64 snapshotBlock,
             uint64 supportRequired,
             uint64 minAcceptQuorum,
-            uint256 votes,
-            uint256 votingPower,
-            bytes script
+            uint256 votes
         )
     {
         Candidate storage candidate_ = candidates[_candidateId];
@@ -362,8 +331,6 @@ contract Election is IForwarder, AragonApp {
         supportRequired = candidate_.supportRequiredPct;
         minAcceptQuorum = candidate_.minAcceptQuorumPct;
         votes = candidate_.votes;
-        votingPower = candidate_.votingPower;
-        script = candidate_.executionScript;
     }
 
     function getVoterState(uint256 _electionId, uint256 _candidateId, address _voter) public view electionCandidateExists(_electionId, _candidateId) returns (VoterState) {
@@ -396,23 +363,6 @@ contract Election is IForwarder, AragonApp {
         // }
     }
 
-    // function _newVote(bytes _executionScript, string _metadata, bool _castVote, bool _executesIfDecided)
-    //     internal
-    //     returns (uint256 candidateId)
-    // {
-    //     candidateId = candidatesLength++;
-    //     Candidate storage candidate_ = candidates[candidateId];
-    //     candidate_.startDate = getTimestamp64();
-    //     candidate_.snapshotBlock = getBlockNumber64() - 1; // avoid double voting in this very block
-    //     candidate_.supportRequiredPct = supportRequiredPct;
-
-    //     emit StartVote(candidateId, msg.sender, _metadata);
-
-    //     if (_castVote && canVote(candidateId, msg.sender)) {
-    //         _vote(candidateId, true, msg.sender, _executesIfDecided);
-    //     }
-    // }
-
     function _newElectionVote(uint256 electionId,
                               bytes _executionScript,
                               string _metadata,
@@ -433,7 +383,6 @@ contract Election is IForwarder, AragonApp {
         candidate_.description = _description;
         candidate_.startDate = election_.startDate;
         candidate_.snapshotBlock = getBlockNumber64() - 1; // avoid double voting in this very block
-        candidate_.executionScript = _executionScript;
         election_.candidates[election_.candidatesLength] = candidateId;
         election_.candidatesLength++;
 
@@ -489,10 +438,8 @@ contract Election is IForwarder, AragonApp {
     }
 
     function _executeVote(uint256 _candidateId, bytes _executionScript) internal {
-        Candidate storage candidate_ = candidates[_candidateId];
-
         bytes memory input = new bytes(0); // TODO: Consider input for voting scripts
-        runScript(candidate_.executionScript, input, new address[](0));
+        runScript(_executionScript, input, new address[](0));
 
         emit ExecuteVote(_candidateId);
     }
