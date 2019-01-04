@@ -311,14 +311,14 @@ contract('Election App', accounts => {
 
                 it('vote can be executed automatically if decided', async () => {
                     await voting.vote(voteId1, true, true, { from: holder51 }) // causes execution
-                    assert.equal(await executionTarget.counter(), 2, 'should have executed result')
+                    assert.equal(await executionTarget.counter(), 4, 'should have executed result')
                 })
 
-                // it('vote can be not executed automatically if decided', async () => {
-                //     await voting.vote(voteId, true, false, { from: holder51 }) // doesnt cause execution
-                //     await voting.executeVote(voteId)
-                //     assert.equal(await executionTarget.counter(), 2, 'should have executed result')
-                // })
+                it('vote can be not executed automatically if decided', async () => {
+                    await voting.vote(voteId1, true, false, { from: holder51 }) // doesnt cause execution
+                    await voting.executeElection(electionId)
+                    assert.equal(await executionTarget.counter(), 4, 'should have executed result')
+                })
 
                 // it('cannot re-execute vote', async () => {
                 //     await voting.vote(voteId, true, true, { from: holder51 }) // causes execution

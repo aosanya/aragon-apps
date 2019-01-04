@@ -159,15 +159,15 @@ contract Election is IForwarder, AragonApp {
         emit ChangeMinQuorum(_minAcceptQuorumPct);
     }
 
-    /**
-    * @notice Create a new vote about "`_metadata`"
-    * @param _executionScript EVM script to be executed on approval
-    * @param _metadata Vote metadata
-    * @return voteId Id for newly created vote
-    */
-    function newVote(bytes _executionScript, string _metadata) external auth(CREATE_VOTES_ROLE) returns (uint256 voteId) {
-        return _newVote(_executionScript, _metadata, true, true);
-    }
+    // /**
+    // * @notice Create a new vote about "`_metadata`"
+    // * @param _executionScript EVM script to be executed on approval
+    // * @param _metadata Vote metadata
+    // * @return voteId Id for newly created vote
+    // */
+    // function newVote(bytes _executionScript, string _metadata) external auth(CREATE_VOTES_ROLE) returns (uint256 voteId) {
+    //     return _newVote(_executionScript, _metadata, true, true);
+    // }
 
     /**
     * @notice Create a new vote about "`_metadata`"
@@ -182,7 +182,7 @@ contract Election is IForwarder, AragonApp {
         auth(CREATE_VOTES_ROLE)
         returns (uint256 voteId)
     {
-        return _newVote(_executionScript, _metadata, _castVote, _executesIfDecided);
+        return _newVote(_executionScript, _metadata, true, true);
     }
 
     /**
@@ -198,6 +198,10 @@ contract Election is IForwarder, AragonApp {
         _vote(_voteId, _supports, msg.sender, _executesIfDecided);
     }
 
+    function executeElection(uint256 _electionId) external electionExists(_electionId) {
+        require(canExecuteElection(_electionId), ERROR_CAN_NOT_EXECUTE);
+        _executeElection(_electionId);
+    }
 
     function isForwarder() public pure returns (bool) {
         return true;
@@ -220,8 +224,7 @@ contract Election is IForwarder, AragonApp {
 
     function canVote(uint256 _voteId, address _voter) public view voteExists(_voteId) returns (bool) {
         Vote storage vote_ = votes[_voteId];
-
-        return _isVoteOpen(vote_) && token.balanceOfAt(_voter, vote_.snapshotBlock) > 0;
+        return _isElectionOpen(elections[vote_.electionId]) && token.balanceOfAt(_voter, vote_.snapshotBlock) > 0;
     }
 
     function canExecuteElection(uint256 _electionId) public view electionExists(_electionId) returns (bool) {
@@ -262,10 +265,6 @@ contract Election is IForwarder, AragonApp {
 
         return true;
     }
-
-
-
-
 
     function getElection(uint256 _electionId)
         public
@@ -350,7 +349,8 @@ contract Election is IForwarder, AragonApp {
     {
         Vote storage vote_ = votes[_voteId];
 
-        open = _isVoteOpen(vote_);
+
+        open = _isElectionOpen(elections[vote_.electionId]);
         executed = vote_.executed;
         candidate = vote_.candidate;
         startDate = vote_.startDate;
@@ -472,7 +472,7 @@ contract Election is IForwarder, AragonApp {
         emit CastVote(_voteId, _voter, _supports, voterStake);
 
         if (_executesIfDecided && canExecuteElection(vote_.electionId)) {
-            _executeVote(_voteId, elections[vote_.electionId].executionScript);
+            _executeElection(vote_.electionId);
         }
     }
 
@@ -500,9 +500,6 @@ contract Election is IForwarder, AragonApp {
         emit ExecuteVote(_voteId);
     }
 
-    function _isVoteOpen(Vote storage vote_) internal view returns (bool) {
-        return getTimestamp64() < vote_.startDate.add(voteTime) && !vote_.executed;
-    }
 
     function _isElectionOpen(Election storage election_) internal view returns (bool) {
         return getTimestamp64() < election_.startDate.add(voteTime) && !election_.executed;
