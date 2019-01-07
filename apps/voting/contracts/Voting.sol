@@ -63,7 +63,8 @@ contract Voting is IForwarder, AragonApp {
     event ExecuteVote(uint256 indexed voteId);
     event ChangeSupportRequired(uint64 supportRequiredPct);
     event ChangeMinQuorum(uint64 minAcceptQuorumPct);
-
+    event Test3(uint64 msg);
+    event Test4(bool msg);
     modifier voteExists(uint256 _voteId) {
         require(_voteId < votesLength, ERROR_NO_VOTE);
         _;
@@ -206,18 +207,21 @@ contract Voting is IForwarder, AragonApp {
         if (vote_.executed) {
             return false;
         }
-
+        emit Test3(1);
         // Voting is already decided
         if (_isValuePct(vote_.yea, vote_.votingPower, vote_.supportRequiredPct)) {
             return true;
         }
 
+        emit Test3(2);
         uint256 totalVotes = vote_.yea.add(vote_.nay);
 
         // Vote ended?
         if (_isVoteOpen(vote_)) {
             return false;
         }
+
+        emit Test3(3);
         // Has enough support?
         if (!_isValuePct(vote_.yea, totalVotes, vote_.supportRequiredPct)) {
             return false;

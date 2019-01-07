@@ -27,7 +27,8 @@ contract Election is IForwarder, AragonApp {
     string private constant ERROR_ELECTION_IS_OPEN = "VOTING_ELECTION_IS_OPEN";
     string private constant ERROR_NO_VOTING_POWER_IN_ELECTION = "VOTING_NO_VOTING_POWER_IN_ELECTION";
 
-    string private constant ERROR_NO_VOTE = "VOTING_NO_VOTE";
+    string private constant ERROR_NO_CANDIDATE = "ERROR_NO_CANDIDATE";
+    string private constant ERROR_VOTE_UNCHANGED = "ERROR_VOTE_UNCHANGED";
     string private constant ERROR_NOT_A_CANDIDATE = "ERROR_NOT_A_CANDIDATE";
     string private constant ERROR_INIT_PCTS = "VOTING_INIT_PCTS";
     string private constant ERROR_CHANGE_SUPPORT_PCTS = "VOTING_CHANGE_SUPPORT_PCTS";
@@ -35,18 +36,19 @@ contract Election is IForwarder, AragonApp {
     string private constant ERROR_INIT_SUPPORT_TOO_BIG = "VOTING_INIT_SUPPORT_TOO_BIG";
     string private constant ERROR_CHANGE_SUPPORT_TOO_BIG = "VOTING_CHANGE_SUPP_TOO_BIG";
     string private constant ERROR_CAN_NOT_VOTE = "VOTING_CAN_NOT_VOTE";
-    string private constant ERROR_CAN_NOT_EXECUTE = "VOTING_CAN_NOT_EXECUTE";
+    string private constant ERROR_CAN_NOT_EXECUTE1 = "VOTING_CAN_NOT_EXECUTE1";
+    string private constant ERROR_CAN_NOT_EXECUTE2 = "VOTING_CAN_NOT_EXECUTE2";
     string private constant ERROR_CAN_NOT_FORWARD = "VOTING_CAN_NOT_FORWARD";
     string private constant ERROR_NO_VOTING_POWER = "VOTING_NO_VOTING_POWER";
 
-    enum VoterState { Absent, Yea, Nay }
+    enum VoterState { Nay, Yea }
 
     struct Candidate {
         uint256 electionId;
         uint256 candidateId;
         string description;
         uint64 startDate;
-        uint64 snapshotBlock;
+        uint64 createdAtBlock;
         uint64 supportRequiredPct;
         uint64 minAcceptQuorumPct;
         uint256 votes;
@@ -77,28 +79,43 @@ contract Election is IForwarder, AragonApp {
     mapping (uint256 => Election) internal elections;
     uint256 public electionsLength;
 
+    mapping (address => mapping (uint256 => uint256)) votes;
+
     event StartElection(uint256 indexed electionId, address indexed creator, string metadata);
     event StartVote(uint256 indexed candidateId, address indexed creator, string metadata);
     event CastVote(uint256 indexed candidateId, address indexed voter, bool supports, uint256 stake);
+    event RevertVote(uint256 indexed candidateId, address indexed voter);
     event ExecuteElection(uint256 indexed electionId);
     event ExecuteVote(uint256 indexed candidateId);
     event ChangeSupportRequired(uint64 supportRequiredPct);
     event ChangeMinQuorum(uint64 minAcceptQuorumPct);
-
+    event TryExecuteElection(uint256 indexed electionId);
+    event Test1();
+    event Test2();
+    event Test3(uint64 msg);
+    event Test4(bool msg);
+    event Test5(uint256 msg);
     modifier electionExists(uint256 _electionId) {
         require(_electionId < electionsLength, ERROR_NO_ELECTION);
         _;
     }
 
-    modifier voteExists(uint256 _candidateId) {
-        require(_candidateId < candidatesLength, ERROR_NO_VOTE);
+    modifier candidateExists(uint256 _candidateId) {
+        require(_candidateId < candidatesLength + 1, ERROR_NO_CANDIDATE);
+        _;
+    }
+
+    modifier voteUnchaged(address voter, uint256 _candidateId, bool _supports) {
+        if (_supports == true) {
+            require(_candidateId != votes[voter][candidates[_candidateId].electionId], ERROR_VOTE_UNCHANGED);
+        }
         _;
     }
 
     modifier electionCandidateExists(uint256 _electionId, uint256 _candidateId) {
         require(_electionId < electionsLength, ERROR_NO_ELECTION);
         Election storage election_ = elections[_electionId];
-        require(_candidateId < candidatesLength, ERROR_NO_VOTE);
+        require(_candidateId < candidatesLength + 1, ERROR_NO_CANDIDATE);
         bool candidateBelongsToElection = false;
         for (uint i = 0; i < elections[_electionId].candidatesLength; i++) {
             if (elections[_electionId].candidates[i] == _candidateId) {
@@ -175,13 +192,14 @@ contract Election is IForwarder, AragonApp {
     * @param _supports Whether voter supports the vote
     * @param _executesIfDecided Whether the vote should execute its action if it becomes decided
     */
-    function vote(uint256 _candidateId, bool _supports, bool _executesIfDecided) external voteExists(_candidateId) {
+    function vote(uint256 _candidateId, bool _supports, bool _executesIfDecided) external candidateExists(_candidateId) {
         require(canVote(_candidateId, msg.sender), ERROR_CAN_NOT_VOTE);
         _vote(_candidateId, _supports, msg.sender, _executesIfDecided);
     }
 
     function executeElection(uint256 _electionId) external electionExists(_electionId) {
-        require(canExecuteElection(_electionId), ERROR_CAN_NOT_EXECUTE);
+
+        require(canExecuteElection(_electionId), ERROR_CAN_NOT_EXECUTE1);
         _executeElection(_electionId);
     }
 
@@ -204,13 +222,15 @@ contract Election is IForwarder, AragonApp {
         return canPerform(_sender, CREATE_VOTES_ROLE, arr());
     }
 
-    function canVote(uint256 _candidateId, address _voter) public view voteExists(_candidateId) returns (bool) {
+    function canVote(uint256 _candidateId, address _voter) public view candidateExists(_candidateId) returns (bool) {
         Candidate storage candidate_ = candidates[_candidateId];
-        return _isElectionOpen(elections[candidate_.electionId]) && token.balanceOfAt(_voter, candidate_.snapshotBlock) > 0;
+        return _isElectionOpen(elections[candidate_.electionId]) && token.balanceOfAt(_voter, elections[candidate_.electionId].snapshotBlock) > 0;
     }
 
     function canExecuteElection(uint256 _electionId) public view electionExists(_electionId) returns (bool) {
         // ToDo MWA move the loops to single loop
+
+        // emit TryExecuteElection(_electionId);
         Election storage election_ = elections[_electionId];
 
         if (election_.executed) {
@@ -227,13 +247,17 @@ contract Election is IForwarder, AragonApp {
 
         uint256 totalVotes = getTotalVotes(_electionId);
 
+        // emit Test3(getTimestamp64());
+        // emit Test3(election_.startDate.add(voteTime));
         // Election ended?
         if (_isElectionOpen(election_)) {
             return false;
         }
+
         // Has enough support?
         for (uint k = 0; k < candidateIds.length; k++) {
             if (_isValuePct(candidates[k].votes, totalVotes, election_.supportRequiredPct)) {
+                // emit Test5(candidates[k].votes);
                 return false;
             }
         }
@@ -315,7 +339,7 @@ contract Election is IForwarder, AragonApp {
             bool executed,
             string description,
             uint64 startDate,
-            uint64 snapshotBlock,
+            uint64 creatAtBlock,
             uint64 supportRequired,
             uint64 minAcceptQuorum,
             uint256 votes
@@ -327,7 +351,7 @@ contract Election is IForwarder, AragonApp {
         executed = elections[candidate_.electionId].executed;
         description = candidate_.description;
         startDate = candidate_.startDate;
-        snapshotBlock = candidate_.snapshotBlock;
+        creatAtBlock = candidate_.createdAtBlock;
         supportRequired = candidate_.supportRequiredPct;
         minAcceptQuorum = candidate_.minAcceptQuorumPct;
         votes = candidate_.votes;
@@ -338,7 +362,12 @@ contract Election is IForwarder, AragonApp {
         return candidate_.voters[_voter];
     }
 
-    function _newElection(bytes _executionScript, string _metadata, bool _castVote, bool _executesIfDecided)
+    function getVoterChoice(uint256 _electionId, address _voter) public view electionExists(_electionId) returns (uint256) {
+        //return 100;
+        return votes[_voter][_electionId];
+    }
+
+    function _newElection(bytes _executionScript, string _metadata)
         internal
         returns (uint256 electionId)
     {
@@ -357,40 +386,30 @@ contract Election is IForwarder, AragonApp {
         election_.executionScript = _executionScript;
 
         emit StartElection(electionId, msg.sender, _metadata);
-
-        // if (_castVote && canVote(candidateId, msg.sender)) {
-        //     _vote(candidateId, true, msg.sender, _executesIfDecided);
-        // }
     }
 
-    function _newElectionVote(uint256 electionId,
+    function _newElectionCandidate(uint256 electionId,
                               bytes _executionScript,
                               string _metadata,
-                              string _description,
-                              bool _castVote,
-                              bool _executesIfDecided)
+                              string _description)
         internal
         returns (uint256 candidateId)
     {
 
         Election storage election_ = elections[electionId];
-
-        candidateId = candidatesLength++;
+        candidatesLength++;
+        candidateId = candidatesLength;
         Candidate storage candidate_ = candidates[candidateId];
 
         candidate_.electionId = electionId;
         candidate_.candidateId = candidateId;
         candidate_.description = _description;
         candidate_.startDate = election_.startDate;
-        candidate_.snapshotBlock = getBlockNumber64() - 1; // avoid double voting in this very block
+        candidate_.createdAtBlock = getBlockNumber64() - 1; // avoid double voting in this very block
         election_.candidates[election_.candidatesLength] = candidateId;
         election_.candidatesLength++;
 
         emit StartVote(candidateId, msg.sender, _metadata);
-
-        if (_castVote && canVote(candidateId, msg.sender)) {
-            _vote(candidateId, true, msg.sender, _executesIfDecided);
-        }
     }
 
     function _vote(
@@ -399,20 +418,20 @@ contract Election is IForwarder, AragonApp {
         address _voter,
         bool _executesIfDecided
     ) internal
+    voteUnchaged(_voter, _candidateId, _supports)
     {
+
         Candidate storage candidate_ = candidates[_candidateId];
-
-        // This could re-enter, though we can assume the governance token is not malicious
-        uint256 voterStake = token.balanceOfAt(_voter, candidate_.snapshotBlock);
-        VoterState state = candidate_.voters[_voter];
-
-        // If voter had previously voted, decrease count
-        if (state == VoterState.Yea) {
-            candidate_.votes = candidate_.votes.sub(voterStake);
+        _revertVote(_candidateId, _voter);
+        if (_supports == false) {
+            return;
         }
+        // This could re-enter, though we can assume the governance token is not malicious
+        uint256 voterStake = token.balanceOfAt(_voter, elections[candidate_.electionId].snapshotBlock);
 
         if (_supports) {
             candidate_.votes = candidate_.votes.add(voterStake);
+            votes[_voter][candidate_.electionId] = _candidateId;
         }
 
         candidate_.voters[_voter] = _supports ? VoterState.Yea : VoterState.Nay;
@@ -424,16 +443,47 @@ contract Election is IForwarder, AragonApp {
         }
     }
 
+    function _revertVote(
+        uint256 _candidateId,
+        address _voter
+    ) internal
+    {
+        uint256 previouCandidateId_ = votes[_voter][candidates[_candidateId].electionId];
+        if (previouCandidateId_ == 0 ) {
+            return;
+        }
+        Candidate storage candidate_ = candidates[previouCandidateId_];
+
+        uint256 voterStake = token.balanceOfAt(_voter, elections[candidate_.electionId].snapshotBlock);
+        VoterState state = candidate_.voters[_voter];
+
+        // If voter had previously voted, decrease count
+        if (state == VoterState.Yea) {
+            candidate_.votes = candidate_.votes.sub(voterStake);
+        }
+
+        candidate_.voters[_voter] = VoterState.Nay;
+
+        votes[_voter][candidate_.electionId] = 0;
+
+        emit RevertVote(_candidateId, _voter);
+
+    }
+
     function _executeElection(uint256 _electionId) internal {
         Election storage election_ = elections[_electionId];
-
+        emit Test3(2);
         election_.executed = true;
+        //uint256[] memory candidateIds = getElectionCandidateIds(_electionId);
 
-        uint256[] memory candidateIds = getElectionCandidateIds(_electionId);
+        // for (uint i = 0; i < candidateIds.length; i++) {
+        //     _executeVote(candidateIds[i], election_.executionScript);
+        // }
 
-        for (uint i = 0; i < candidateIds.length; i++) {
-            _executeVote(candidateIds[i], election_.executionScript);
-        }
+        bytes memory input = new bytes(0); // TODO: Consider input for voting scripts
+        runScript(election_.executionScript, input, new address[](0));
+
+
         emit ExecuteElection(_electionId);
     }
 
